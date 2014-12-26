@@ -49,6 +49,7 @@ final class DriverManager
          'drizzle_pdo_mysql'  => 'Doctrine\DBAL\Driver\DrizzlePDOMySql\Driver',
          'sqlanywhere'        => 'Doctrine\DBAL\Driver\SQLAnywhere\Driver',
          'sqlsrv'             => 'Doctrine\DBAL\Driver\SQLSrv\Driver',
+         'mysqlind'           => 'Doctrine\DBAL\Driver\Mysqlind\Driver',
     );
 
     /**
@@ -142,7 +143,7 @@ final class DriverManager
         }
 
         $params = self::parseDatabaseUrl($params);
-        
+
         // check for existing pdo object
         if (isset($params['pdo']) && ! $params['pdo'] instanceof \PDO) {
             throw DBALException::invalidPdoInstance();
@@ -227,23 +228,23 @@ final class DriverManager
         if (!isset($params['url'])) {
             return $params;
         }
-        
+
         // (pdo_)?sqlite3?:///... => (pdo_)?sqlite3?://localhost/... or else the URL will be invalid
         $url = preg_replace('#^((?:pdo_)?sqlite3?):///#', '$1://localhost/', $params['url']);
-        
+
         $url = parse_url($url);
-        
+
         if ($url === false) {
             throw new DBALException('Malformed parameter "url".');
         }
-        
+
         if (isset($url['scheme'])) {
             $params['driver'] = str_replace('-', '_', $url['scheme']); // URL schemes must not contain underscores, but dashes are ok
             if (isset(self::$driverSchemeAliases[$params['driver']])) {
                 $params['driver'] = self::$driverSchemeAliases[$params['driver']]; // use alias like "postgres", else we just let checkParams decide later if the driver exists (for literal "pdo-pgsql" etc)
             }
         }
-        
+
         if (isset($url['host'])) {
             $params['host'] = $url['host'];
         }
@@ -256,7 +257,7 @@ final class DriverManager
         if (isset($url['pass'])) {
             $params['password'] = $url['pass'];
         }
-        
+
         if (isset($url['path'])) {
             if (!isset($url['scheme']) || (strpos($url['scheme'], 'sqlite') !== false && $url['path'] == ':memory:')) {
                 $params['dbname'] = $url['path']; // if the URL was just "sqlite::memory:", which parses to scheme and path only
@@ -264,13 +265,13 @@ final class DriverManager
                 $params['dbname'] = substr($url['path'], 1); // strip the leading slash from the URL
             }
         }
-        
+
         if (isset($url['query'])) {
             $query = array();
             parse_str($url['query'], $query); // simply ingest query as extra params, e.g. charset or sslmode
             $params = array_merge($params, $query); // parse_str wipes existing array elements
         }
-        
+
         return $params;
     }
 }
